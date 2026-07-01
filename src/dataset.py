@@ -5,27 +5,17 @@ from PIL import Image
 import torchvision.transforms as transforms
 from utils import extract_features
 import os
+import numpy as np
 
 class LensDataset(Dataset):
     def __init__(self, csv_file, base_img_dir, transform=None,
-                 filter_clean_data=False, augment=False):
+                  augment=False):
         self.data_frame   = pd.read_csv(csv_file)
         self.base_img_dir = base_img_dir
         self.augment      = augment
 
-        if filter_clean_data:
-            initial = len(self.data_frame)
-            self.data_frame = self.data_frame[
-                self.data_frame['true_class_index'] == self.data_frame['resnet_predicted_index']
-            ].reset_index(drop=True)
-            print(f"Filtered {csv_file}: kept {len(self.data_frame)}, "
-                  f"dropped {initial - len(self.data_frame)}")
-
-        # ColorJitter simulates lighting variation — directly relevant
-        # to what the model is learning to compensate for
         self.train_transform = transforms.Compose([
             transforms.Resize((224, 224)),
-            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1),
             transforms.ToTensor(),
         ])
         self.val_transform = transforms.Compose([
@@ -39,9 +29,11 @@ class LensDataset(Dataset):
 
     def __getitem__(self, index):
         row    = self.data_frame.iloc[index]
-        target = int(row['best_param_index'])
+        target = np.fromstring(row["confidence_vector"].strip("[]"),sep=" ")
 
-        img_path = os.path.join(self.base_img_dir, row['ae_image_path'])
+        target = torch.tensor(target, dtype=torch.float32)
+
+        img_path = row['ae_image_path']
         image    = Image.open(img_path).convert('RGB')
 
         if self.transform:
@@ -51,8 +43,7 @@ class LensDataset(Dataset):
         else:
             img_tensor = self.val_transform(image)
 
-        # 74-dim feature vector: RGB histograms + clipping + spatial contrast
-        # All derived purely from the image — no metadata used
+        
         feature_vector = extract_features(img_tensor)
 
         return feature_vector, target
@@ -60,9 +51,9 @@ class LensDataset(Dataset):
 
 def get_dataloader(train_csv, val_csv, base_img_dir, batch_size=64):
     train_dataset = LensDataset(train_csv, base_img_dir,
-                                filter_clean_data=False, augment=True)
+                                augment=True)
     val_dataset   = LensDataset(val_csv,   base_img_dir,
-                                filter_clean_data=False, augment=False)
+                                 augment=False)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size,
                               shuffle=True,  num_workers=0)
