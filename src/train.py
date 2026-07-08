@@ -17,7 +17,7 @@ VAL_CSV = "lens_val.csv"
 
 BASE_IMG_DIR = "ImageNet-ES-Diverse"
 
-INPUT_DIM = 74          # change if your feature extractor changes
+INPUT_DIM = 586          # change if your feature extractor changes
 
 BATCH_SIZE = 64
 

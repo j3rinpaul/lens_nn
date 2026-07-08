@@ -83,23 +83,23 @@ def extract_features(image_tensor):
     # ── Concatenate all ────────────────────────────────────────────────────────
 
 
-    # with torch.no_grad():
+    with torch.no_grad():
 
-    #     image_batch = image_tensor.unsqueeze(0).to(device)
+        image_batch = image_tensor.unsqueeze(0).to(device)
 
-    #     deep_features = feature_extractor(image_batch)
+        deep_features = feature_extractor(image_batch)
 
-    #     deep_features = deep_features.flatten()
+        deep_features = deep_features.flatten()
 
     handcrafted = torch.cat([f.flatten() for f in features])
 
-    # final = torch.cat([handcrafted,deep_features.cpu()])
+    final = torch.cat([handcrafted,deep_features.cpu()])
 
     # print(final.shape)
 
     # return final
 
-    return handcrafted
+    return final
 
 
 # # Keep old function as alias so existing code doesn't break
